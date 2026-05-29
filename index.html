@@ -182,171 +182,281 @@
     .wrap { grid-template-columns: 1fr; }
     .stage { min-height: 52vh; }
   }
+<style>
+.stat { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 0.65rem 0.85rem; }
+.stat-label { font-size: 12px; color: var(--color-text-secondary); margin: 0; }
+.stat-value { font-size: 18px; font-weight: 500; margin: 2px 0 0; color: var(--color-text-primary); font-variant-numeric: tabular-nums; }
+.row { display: flex; align-items: center; gap: 12px; margin: 1rem 0 0; }
+.s-broken { color: var(--color-text-danger); font-weight: 500; }
+.s-safe { color: var(--color-text-success); font-weight: 500; }
+.s-floated { color: var(--color-text-info); font-weight: 500; }
+.control-input { flex: 1; padding: 6px; border: 1px solid var(--color-border-secondary); border-radius: 4px; font-family: inherit; font-size: 14px; }
+.btn { padding: 8px 16px; border-radius: 4px; font-size: 14px; cursor: pointer; font-family: inherit; border: none; font-weight: 500; }
+.btn-primary { background: #3a6ea5; color: white; }
+.btn-secondary { background: var(--color-background-secondary); border: 1px solid var(--color-border-secondary); color: var(--color-text-primary); }
 </style>
-</head>
-<body>
-  <div class="wrap">
-    <div class="stage">
-      <canvas id="scene" width="760" height="560"></canvas>
-      <div id="status"></div>
-    </div>
 
-    <div class="side">
-      <div class="titlecard">
-        <h1>Helium Balloon<br>Egg Drop</h1>
-        <p>30&nbsp;g egg falling from 15&nbsp;m. Type the helium volume to slow the fall below the 2.5&nbsp;m/s break threshold.</p>
-      </div>
+<h2 class="sr-only">Interactive simulation of a helium balloon dropping an adjustable-mass egg.</h2>
 
-      <div class="metrics">
-        <div class="metric"><div class="lbl">Height</div><div class="val" id="hOut">15.0 m</div></div>
-        <div class="metric"><div class="lbl">Velocity</div><div class="val" id="vOut">0.00 m/s</div></div>
-        <div class="metric"><div class="lbl">Radius</div><div class="val" id="rMetricOut">— cm</div></div>
-        <div class="metric"><div class="lbl">Terminal v</div><div class="val" id="vtOut">— m/s</div></div>
-      </div>
+<div style="position: relative; width: 100%; height: 400px; background: var(--color-background-secondary); border-radius: var(--border-radius-md); overflow: hidden;">
+  <canvas id="scene" width="680" height="400" style="display: block; width: 100%; height: 100%;"></canvas>
+  <div id="status" style="position: absolute; top: 12px; left: 50%; transform: translateX(-50%); font-size: 13px; padding: 6px 12px; background: var(--color-background-primary); border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); display: none; white-space: nowrap;"></div>
+</div>
 
-      <div class="controls">
-        <div class="ctl">
-          <label for="vInput">Helium volume (L)</label>
-          <input id="vInput" type="number" min="0.1" max="500" step="0.1" value="14.1">
-        </div>
-        <div class="ctl">
-          <label for="mInput">Egg mass (g)</label>
-          <input id="mInput" type="number" min="1" max="1000" step="1" value="30">
-        </div>
-        <div class="actions">
-          <button id="restartBtn">↻ Restart drop</button>
-          <span class="hint">Breaks above 2.5&nbsp;m/s impact</span>
-        </div>
-      </div>
-    </div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin: 1rem 0 0;">
+  <div class="stat"><p class="stat-label">Height</p><p class="stat-value" id="hOut">5.8 m</p></div>
+  <div class="stat"><p class="stat-label">Velocity</p><p class="stat-value" id="vOut">0.00 m/s</p></div>
+  <div class="stat"><p class="stat-label">Time</p><p class="stat-value" id="tOut">0.0 s</p></div>
+  <div class="stat"><p class="stat-label">He volume</p><p class="stat-value" id="volOut">— L</p></div>
+  <div class="stat"><p class="stat-label">Terminal v</p><p class="stat-value" id="vtOut">— m/s</p></div>
+</div>
+
+<div class="row">
+  <label for="heightSel" style="font-size: 14px; color: var(--color-text-secondary); min-width: 130px;">Drop Height</label>
+  <select id="heightSel" class="control-input">
+    <option value="5.8">5.8 m</option>
+    <option value="3.7">3.7 m</option>
+  </select>
+</div>
+
+<div class="row" style="margin-top: 0.6rem;">
+  <label for="purityIn" style="font-size: 14px; color: var(--color-text-secondary); min-width: 130px;">He Purity (%)</label>
+  <input id="purityIn" type="number" min="0" max="100" step="1" value="100" class="control-input" />
+</div>
+
+<div class="row" style="margin-top: 0.6rem;">
+  <label for="breakIn" style="font-size: 14px; color: var(--color-text-secondary); min-width: 130px;">Impact Tol. (m/s)</label>
+  <input id="breakIn" type="number" min="0.5" max="10" step="0.1" value="2.5" class="control-input" />
+</div>
+
+<div class="row" style="margin-top: 0.6rem;">
+  <label for="rSlider" style="font-size: 14px; color: var(--color-text-secondary); min-width: 130px;">Balloon radius</label>
+  <input id="rSlider" type="range" min="5" max="40" step="0.5" value="15" style="flex: 1;" />
+  <span id="rOut" style="font-size: 14px; font-weight: 500; min-width: 64px; text-align: right; font-variant-numeric: tabular-nums;">15.0 cm</span>
+</div>
+
+<div class="row" style="margin-top: 0.6rem;">
+  <label for="mSlider" style="font-size: 14px; color: var(--color-text-secondary); min-width: 130px;">Egg mass</label>
+  <input id="mSlider" type="range" min="5" max="100" step="1" value="30" style="flex: 1;" />
+  <span id="mOut" style="font-size: 14px; font-weight: 500; min-width: 64px; text-align: right; font-variant-numeric: tabular-nums;">30 g</span>
+</div>
+
+<div class="row" style="justify-content: space-between; border-top: 1px solid var(--color-border-tertiary); padding-top: 1rem; margin-top: 1rem;">
+  <span id="breakHint" style="font-size: 13px; color: var(--color-text-secondary);">Breaks above 2.5 m/s impact</span>
+  <div style="display: flex; gap: 8px;">
+    <button id="restartBtn" class="btn btn-secondary"><i class="ti ti-refresh" aria-hidden="true" style="margin-right: 4px;"></i>Reset</button>
+    <button id="dropBtn" class="btn btn-primary"><i class="ti ti-arrow-down" aria-hidden="true" style="margin-right: 4px;"></i>Drop Simulation</button>
   </div>
+</div>
 
 <script>
 (function() {
   const cvs = document.getElementById('scene');
   const ctx = cvs.getContext('2d');
+  const W = 680, H = 400;
+  const topY = 30, groundY = 370;
+  // Adjusted scale so 7 meters fits perfectly on the canvas
+  const pxPerMeter = (groundY - topY) / 7;
 
-  function fit() {
-    const r = cvs.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    cvs.width = Math.round(r.width * dpr);
-    cvs.height = Math.round(r.height * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    layout.W = r.width; layout.H = r.height;
-    layout.topY = r.height * 0.07;
-    layout.groundY = r.height * 0.9;
-    layout.pxPerMeter = (layout.groundY - layout.topY) / 15;
+  const PHYS = {
+    m_rub: 0.002,
+    rho_a: 1.225, rho_h: 0.1786,
+    g: 9.81, Cd: 0.55 // Updated to Bluff-body Teardrop Drag
+  };
+
+  const state = {
+    r: 0.15, m_egg: 0.030,
+    purity: 1.0, break_v: 2.5, start_h: 5.8,
+    h: 5.8, v: 0.0, t: 0,
+    running: false, outcome: null, impactV: 0, postT: 0
+  };
+
+  function volume(r) { return (4/3) * Math.PI * r*r*r; }
+  
+  function getGasDensity() {
+    return state.purity * PHYS.rho_h + (1 - state.purity) * PHYS.rho_a;
   }
-  const layout = {};
 
-  const PHYS = { m_rub: 0.002, rho_a: 1.225, rho_h: 0.1786, g: 9.81, Cd: 0.47, break_v: 2.5 };
-  const state = { volL: 14.1, r: 0.15, m_egg: 0.030, h: 15.0, v: 0.0, t: 0, running: true, outcome: null, impactV: 0, postT: 0 };
-
-  // Derive initial radius from volume
-  state.r = Math.cbrt((state.volL / 1000) * 0.75 / Math.PI);
-
-  const volume = r => (4/3) * Math.PI * r*r*r;
-  function termV(r, m) {
-    const V = volume(r), A = Math.PI*r*r;
-    const netW = PHYS.g * (m + PHYS.m_rub - (PHYS.rho_a - PHYS.rho_h) * V);
-    return netW <= 0 ? null : Math.sqrt(2*netW / (PHYS.rho_a*PHYS.Cd*A));
+  function termV(r, m_egg) {
+    const V = volume(r);
+    const A = Math.PI * r*r;
+    const rho_gas = getGasDensity();
+    const netW = PHYS.g * (m_egg + PHYS.m_rub - (PHYS.rho_a - rho_gas) * V);
+    if (netW <= 0) return null;
+    return Math.sqrt(2 * netW / (PHYS.rho_a * PHYS.Cd * A));
   }
 
   function reset() {
-    state.h = 15; state.v = 0; state.t = 0;
-    state.running = true; state.outcome = null; state.impactV = 0; state.postT = 0;
+    state.h = state.start_h; state.v = 0; state.t = 0;
+    state.running = false; state.outcome = null;
+    state.impactV = 0; state.postT = 0;
     document.getElementById('status').style.display = 'none';
+    updateMetrics();
+    render();
+  }
+
+  function start() {
+    if (!state.running && state.outcome === null) {
+      state.running = true;
+    }
   }
 
   function step(dt) {
     if (state.running) {
-      const r = state.r, V = volume(r), A = Math.PI*r*r;
-      const inertia = state.m_egg + PHYS.m_rub + PHYS.rho_h*V;
-      const Fg = PHYS.g * (state.m_egg + PHYS.m_rub - (PHYS.rho_a - PHYS.rho_h)*V);
+      const r = state.r;
+      const V = volume(r);
+      const A = Math.PI * r*r;
+      const rho_gas = getGasDensity();
+      
+      const inertia = state.m_egg + PHYS.m_rub + rho_gas * V;
+      const Fg = PHYS.g * (state.m_egg + PHYS.m_rub - (PHYS.rho_a - rho_gas) * V);
       const Fd = -0.5 * PHYS.rho_a * state.v * Math.abs(state.v) * PHYS.Cd * A;
-      state.v += ((Fg + Fd) / inertia) * dt;
+      
+      const a = (Fg + Fd) / inertia;
+      state.v += a * dt;
       state.h -= state.v * dt;
       state.t += dt;
+      
       if (state.h <= 0) {
-        state.impactV = state.v; state.h = 0; state.running = false;
-        state.outcome = state.v > PHYS.break_v ? 'broken' : 'safe';
+        state.impactV = state.v;
+        state.h = 0;
+        state.running = false;
+        state.outcome = state.v > state.break_v ? 'broken' : 'safe';
         showStatus();
-      } else if (state.h > 18) {
-        state.running = false; state.outcome = 'floated'; showStatus();
+      } else if (state.h > state.start_h + 3) { // floated off screen
+        state.running = false;
+        state.outcome = 'floated';
+        showStatus();
       }
-    } else { state.postT += dt; }
+    } else if (state.outcome) {
+      state.postT += dt;
+    }
   }
 
   function showStatus() {
     const el = document.getElementById('status');
-    if (state.outcome === 'broken')      el.innerHTML = '<span class="s-broken">✕ Egg broke — impact ' + state.impactV.toFixed(2) + ' m/s</span>';
-    else if (state.outcome === 'safe')   el.innerHTML = '<span class="s-safe">✓ Safe landing — impact ' + state.impactV.toFixed(2) + ' m/s</span>';
-    else if (state.outcome === 'floated')el.innerHTML = '<span class="s-floated">↑ Floated away</span>';
+    if (state.outcome === 'broken') {
+      el.innerHTML = '<span class="s-broken"><i class="ti ti-alert-triangle" aria-hidden="true" style="vertical-align:-2px;margin-right:4px"></i>Egg broke — impact ' + state.impactV.toFixed(2) + ' m/s</span>';
+    } else if (state.outcome === 'safe') {
+      el.innerHTML = '<span class="s-safe"><i class="ti ti-check" aria-hidden="true" style="vertical-align:-2px;margin-right:4px"></i>Safe landing — impact ' + state.impactV.toFixed(2) + ' m/s</span>';
+    } else if (state.outcome === 'floated') {
+      el.innerHTML = '<span class="s-floated"><i class="ti ti-arrow-up" aria-hidden="true" style="vertical-align:-2px;margin-right:4px"></i>Floated away</span>';
+    }
     el.style.display = 'block';
   }
 
-  function eggSize() { const s = Math.cbrt(state.m_egg/0.030); return { rx: 9*s, ry: 13*s }; }
+  function cssVar(n, fallback) {
+    const v = getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    return v || fallback;
+  }
+
+  function eggSize() {
+    const s = Math.cbrt(state.m_egg / 0.030);
+    return { rx: 7 * s, ry: 10 * s };
+  }
 
   function drawBalloon(cx, cy, rPx) {
-    const grad = ctx.createRadialGradient(cx - rPx*0.3, cy - rPx*0.35, rPx*0.1, cx, cy, rPx);
-    grad.addColorStop(0, '#ef7d54'); grad.addColorStop(1, '#d85a30');
-    ctx.fillStyle = grad;
-    ctx.beginPath(); ctx.arc(cx, cy, rPx, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle = '#993c1d'; ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.beginPath(); ctx.ellipse(cx - rPx*0.32, cy - rPx*0.38, rPx*0.16, rPx*0.1, -0.6, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#d85a30';
+    ctx.beginPath();
+    ctx.arc(cx, cy, rPx, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = '#993c1d';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    // Teardrop tail knot
     ctx.fillStyle = '#993c1d';
-    ctx.beginPath(); ctx.moveTo(cx-3, cy+rPx-1); ctx.lineTo(cx, cy+rPx+6); ctx.lineTo(cx+3, cy+rPx-1); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx - 3, cy + rPx - 1);
+    ctx.lineTo(cx, cy + rPx + 5);
+    ctx.lineTo(cx + 3, cy + rPx - 1);
+    ctx.closePath();
+    ctx.fill();
   }
 
   function drawEgg(cx, cy) {
     const { rx, ry } = eggSize();
-    ctx.fillStyle = '#fdf6e9'; ctx.strokeStyle = '#b8a888'; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    ctx.beginPath(); ctx.ellipse(cx - rx*0.3, cy - ry*0.3, rx*0.25, ry*0.18, -0.5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fdf6e9';
+    ctx.strokeStyle = '#b8a888';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.stroke();
   }
 
-  function drawCracked(cx) {
-    const { rx } = eggSize(); const splat = rx*4; const gY = layout.groundY;
+  function drawCrackedEgg(cx) {
+    const { rx } = eggSize();
+    const splat = rx * 4;
     ctx.fillStyle = '#f5c14a';
-    ctx.beginPath(); ctx.ellipse(cx, gY-4, splat, splat*0.26, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cx, groundY - 3, splat, splat * 0.25, 0, 0, Math.PI*2);
+    ctx.fill();
     ctx.fillStyle = '#fdd870';
-    ctx.beginPath(); ctx.ellipse(cx-4, gY-5, splat*0.32, splat*0.16, 0, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = '#fdf6e9'; ctx.strokeStyle = '#b8a888'; ctx.lineWidth = 1;
-    const k = splat/30;
-    [[-28,-2,6,3,0.3],[-14,-9,5,4,-0.4],[16,-8,6,3,0.6],[30,-2,5,3,-0.2],[2,-12,4,3,0],[-22,-13,4,2,0.5]]
-      .forEach(p => { ctx.beginPath(); ctx.ellipse(cx+p[0]*k, gY+p[1], p[2]*k, p[3]*k, p[4], 0, Math.PI*2); ctx.fill(); ctx.stroke(); });
+    ctx.beginPath();
+    ctx.ellipse(cx - 3, groundY - 4, splat * 0.3, splat * 0.15, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#fdf6e9';
+    ctx.strokeStyle = '#b8a888';
+    ctx.lineWidth = 1;
+    const k = splat / 28;
+    const pieces = [[-28,-2,6,3,0.3],[-14,-9,5,4,-0.4],[16,-8,6,3,0.6],[30,-2,5,3,-0.2],[2,-11,4,3,0],[-22,-12,4,2,0.5]];
+    pieces.forEach(p => {
+      ctx.beginPath();
+      ctx.ellipse(cx + p[0]*k, groundY + p[1], p[2]*k, p[3]*k, p[4], 0, Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+    });
   }
 
   function render() {
-    const { W, H, topY, groundY, pxPerMeter } = layout;
     ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = '#ece5d6'; ctx.fillRect(0, groundY, W, H-groundY);
-    ctx.strokeStyle = '#cdbfa6'; ctx.lineWidth = 1;
+    ctx.fillStyle = cssVar('--color-background-tertiary', '#e8e6dc');
+    ctx.fillRect(0, groundY, W, H - groundY);
+    ctx.strokeStyle = cssVar('--color-border-secondary', '#bbb');
+    ctx.lineWidth = 0.5;
     ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(W, groundY); ctx.stroke();
-    ctx.strokeStyle = '#d9cdb8'; ctx.fillStyle = '#9a8e76'; ctx.font = '12px "Spline Sans Mono", monospace'; ctx.textAlign = 'right';
-    for (let m = 0; m <= 15; m++) {
-      const y = groundY - m*pxPerMeter;
-      ctx.beginPath(); ctx.moveTo(34, y); ctx.lineTo(44, y); ctx.stroke();
-      if (m % 3 === 0) ctx.fillText(m + ' m', 32, y+4);
+
+    ctx.strokeStyle = cssVar('--color-border-tertiary', '#ccc');
+    ctx.fillStyle = cssVar('--color-text-tertiary', '#888');
+    ctx.font = '11px sans-serif';
+    ctx.textAlign = 'right';
+    
+    // Draw background scale lines up to 7m
+    for (let m = 0; m <= 7; m++) {
+      const y = groundY - m * pxPerMeter;
+      ctx.beginPath();
+      ctx.moveTo(28, y); ctx.lineTo(36, y); ctx.stroke();
+      ctx.fillText(m + ' m', 26, y + 4);
     }
-    const cx = W/2, rPx = state.r*100*(pxPerMeter/57.6*2.6), stringLen = H*0.06;
+
+    const cx = W / 2;
+    const rPx = state.r * 100 * (pxPerMeter / 100) * 2.6; // Scale visually
+    const stringLen = 28;
     const { ry } = eggSize();
+
     if (state.outcome === 'broken') {
-      drawCracked(cx);
-      const yB = groundY - 12 - rPx - state.postT*2.5*pxPerMeter;
+      drawCrackedEgg(cx);
+      const riseV = 2.5;
+      const yB = groundY - 10 - rPx - state.postT * riseV * pxPerMeter;
       if (yB + rPx > -10) {
-        ctx.strokeStyle = '#b3a78f'; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(cx, yB+rPx); ctx.lineTo(cx, yB+rPx+stringLen); ctx.stroke();
+        ctx.strokeStyle = cssVar('--color-text-tertiary', '#999');
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx, yB + rPx);
+        ctx.lineTo(cx, yB + rPx + 24);
+        ctx.stroke();
         drawBalloon(cx, yB, rPx);
       }
     } else {
       const h = Math.max(0, state.h);
-      const yEgg = groundY - h*pxPerMeter - ry;
+      const yEgg = groundY - h * pxPerMeter - ry;
       const yB = yEgg - ry - stringLen - rPx;
-      ctx.strokeStyle = '#b3a78f'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(cx, yB+rPx+4); ctx.lineTo(cx, yEgg-ry+1); ctx.stroke();
+      ctx.strokeStyle = cssVar('--color-text-tertiary', '#999');
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx, yB + rPx + 4);
+      ctx.lineTo(cx, yEgg - ry + 1);
+      ctx.stroke();
       drawBalloon(cx, yB, rPx);
       drawEgg(cx, yEgg);
     }
@@ -355,7 +465,9 @@
   function updateMetrics() {
     document.getElementById('hOut').textContent = Math.max(0, state.h).toFixed(1) + ' m';
     document.getElementById('vOut').textContent = state.v.toFixed(2) + ' m/s';
-    document.getElementById('rMetricOut').textContent = (state.r * 100).toFixed(1) + ' cm';
+    document.getElementById('tOut').textContent = state.t.toFixed(1) + ' s';
+    const V_L = volume(state.r) * 1000;
+    document.getElementById('volOut').textContent = V_L.toFixed(2) + ' L';
     const vt = termV(state.r, state.m_egg);
     document.getElementById('vtOut').textContent = vt === null ? 'floats up' : vt.toFixed(2) + ' m/s';
   }
@@ -363,31 +475,53 @@
   let lastT = null;
   function frame(t) {
     if (lastT === null) lastT = t;
-    const dt = Math.min((t-lastT)/1000, 0.05); lastT = t;
-    for (let i = 0; i < 6; i++) step(dt/6);
-    render(); updateMetrics();
+    let dt = Math.min((t - lastT) / 1000, 0.05);
+    lastT = t;
+    const N = 6;
+    for (let i = 0; i < N; i++) step(dt / N);
+    render();
+    if(state.running || state.outcome !== null) updateMetrics();
     requestAnimationFrame(frame);
   }
 
-  document.getElementById('vInput').addEventListener('input', e => {
-    let v = parseFloat(e.target.value);
-    if (isNaN(v) || v <= 0) v = 0.001; // Prevent physics engine crash on 0 or invalid input
-    state.volL = v;
-    state.r = Math.cbrt((state.volL / 1000) * 0.75 / Math.PI); // recalculate radius
-    updateMetrics();
+  // --- Event Listeners ---
+  document.getElementById('rSlider').addEventListener('input', (e) => {
+    state.r = parseFloat(e.target.value) / 100;
+    document.getElementById('rOut').textContent = (state.r * 100).toFixed(1) + ' cm';
+    if (!state.running) { updateMetrics(); render(); }
   });
   
-  document.getElementById('mInput').addEventListener('input', e => {
-    let m = parseFloat(e.target.value);
-    if (isNaN(m) || m <= 0) m = 1; // Minimum 1 gram
-    state.m_egg = m / 1000;
-    updateMetrics();
+  document.getElementById('mSlider').addEventListener('input', (e) => {
+    state.m_egg = parseFloat(e.target.value) / 1000;
+    document.getElementById('mOut').textContent = Math.round(e.target.value) + ' g';
+    if (!state.running) { updateMetrics(); render(); }
   });
-  
-  document.getElementById('restartBtn').addEventListener('click', reset);
-  window.addEventListener('resize', fit);
 
-  fit(); updateMetrics(); requestAnimationFrame(frame);
+  document.getElementById('heightSel').addEventListener('change', (e) => {
+    state.start_h = parseFloat(e.target.value);
+    reset();
+  });
+
+  document.getElementById('purityIn').addEventListener('input', (e) => {
+    let val = parseFloat(e.target.value);
+    if (isNaN(val)) return;
+    state.purity = Math.max(0, Math.min(100, val)) / 100;
+    if (!state.running) { updateMetrics(); render(); }
+  });
+
+  document.getElementById('breakIn').addEventListener('input', (e) => {
+    let val = parseFloat(e.target.value);
+    if (isNaN(val)) return;
+    state.break_v = Math.max(0.1, val);
+    document.getElementById('breakHint').textContent = `Breaks above ${state.break_v.toFixed(1)} m/s impact`;
+  });
+
+  document.getElementById('restartBtn').addEventListener('click', reset);
+  document.getElementById('dropBtn').addEventListener('click', start);
+
+  updateMetrics();
+  render();
+  requestAnimationFrame(frame);
 })();
 </script>
 </body>
