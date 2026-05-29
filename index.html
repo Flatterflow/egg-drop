@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Helium Balloon Egg Drop</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Spline+Sans+Mono:wght@400;500&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Noto+Sans+JP:wght@400;500&family=Noto+Serif+JP:wght@600&family=Spline+Sans+Mono:wght@400;500&display=swap');
 
   :root {
     --bg: #f4efe6;
@@ -26,7 +26,8 @@
     height: 100%;
     background: var(--bg);
     color: var(--ink);
-    font-family: 'Spline Sans Mono', monospace;
+    font-family: 'Spline Sans Mono', 'Noto Sans JP', monospace;
+    position: relative;
   }
 
   body {
@@ -36,6 +37,35 @@
     padding: 3vh 3vw;
     background-image: radial-gradient(circle at 20% 15%, rgba(216,90,48,0.05), transparent 45%),
                       radial-gradient(circle at 85% 80%, rgba(58,110,165,0.05), transparent 45%);
+  }
+
+  /* Language Switch */
+  .lang-toggle {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    display: flex;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(43,38,32,0.08);
+    z-index: 100;
+  }
+  .lang-toggle button {
+    background: transparent;
+    color: var(--ink-soft);
+    border: none;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 0;
+    transition: all 0.2s;
+  }
+  .lang-toggle button.active {
+    background: var(--accent);
+    color: #fff;
   }
 
   .wrap {
@@ -85,17 +115,17 @@
   }
 
   .titlecard h1 {
-    font-family: 'Fraunces', serif;
+    font-family: 'Fraunces', 'Noto Serif JP', serif;
     font-weight: 600;
     font-size: clamp(22px, 2.8vw, 34px);
-    line-height: 1.05;
+    line-height: 1.15;
     letter-spacing: -0.01em;
   }
   .titlecard p {
     margin-top: 6px;
     color: var(--ink-soft);
     font-size: clamp(12px, 1.3vw, 14px);
-    line-height: 1.4;
+    line-height: 1.5;
   }
 
   .metrics {
@@ -116,7 +146,7 @@
     color: var(--ink-soft);
   }
   .metric .val {
-    font-family: 'Fraunces', serif;
+    font-family: 'Fraunces', 'Noto Serif JP', serif;
     font-size: clamp(20px, 2.4vw, 28px);
     font-weight: 600;
     margin-top: 2px;
@@ -146,7 +176,7 @@
     margin-bottom: 6px;
   }
   
-  .ctl input, .ctl select {
+  .ctl input[type=number], .ctl select {
     width: 100%;
     padding: 10px 12px;
     border: 1px solid var(--line);
@@ -158,7 +188,37 @@
     outline: none;
     transition: border-color 0.2s;
   }
-  .ctl input:focus, .ctl select:focus { border-color: var(--accent); }
+  .ctl input[type=number]:focus, .ctl select:focus { border-color: var(--accent); }
+
+  /* Custom Slider Styling */
+  .ctl input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--line);
+    outline: none;
+    border: none;
+    padding: 0;
+    margin-top: 6px;
+  }
+  .ctl input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid var(--panel);
+    box-shadow: 0 0 0 1px var(--accent);
+    cursor: pointer;
+  }
+  .ctl input[type=range]::-moz-range-thumb {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid var(--panel);
+    cursor: pointer;
+  }
 
   .actions { 
     display: flex; 
@@ -198,6 +258,12 @@
 </style>
 </head>
 <body>
+
+  <div class="lang-toggle">
+    <button id="btnEn" class="active">EN</button>
+    <button id="btnJa">日本語</button>
+  </div>
+
   <div class="wrap">
     <div class="stage">
       <canvas id="scene" width="760" height="560"></canvas>
@@ -206,52 +272,55 @@
 
     <div class="side">
       <div class="titlecard">
-        <h1>Helium Balloon<br>Egg Drop</h1>
-        <p></p>
+        <h1 data-i18n="title">Helium Balloon<br>Egg Drop</h1>
+        <p data-i18n="desc"></p>
       </div>
 
       <div class="metrics">
-        <div class="metric"><div class="lbl">Height</div><div class="val" id="hOut">5.8 m</div></div>
-        <div class="metric"><div class="lbl">Velocity</div><div class="val" id="vOut">0.00 m/s</div></div>
-        <div class="metric"><div class="lbl">Radius</div><div class="val" id="rOut">15.0 cm</div></div>
-        <div class="metric"><div class="lbl">Terminal V</div><div class="val" id="vtOut">2.89 m/s</div></div>
+        <div class="metric"><div class="lbl" data-i18n="lbl_h">Height</div><div class="val" id="hOut">5.8 m</div></div>
+        <div class="metric"><div class="lbl" data-i18n="lbl_v">Velocity</div><div class="val" id="vOut">0.00 m/s</div></div>
+        <div class="metric"><div class="lbl" data-i18n="lbl_r">Radius</div><div class="val" id="rOut">15.0 cm</div></div>
+        <div class="metric"><div class="lbl" data-i18n="lbl_vt">Terminal V</div><div class="val" id="vtOut">2.89 m/s</div></div>
       </div>
 
       <div class="controls">
         <div class="ctl-group">
           <div class="ctl">
-            <label for="heightSel">Drop height (m)</label>
+            <label for="heightSel" data-i18n="lbl_sel_h">Drop height (m)</label>
             <select id="heightSel">
               <option value="5.8">5.8</option>
               <option value="3.7">3.7</option>
             </select>
           </div>
           <div class="ctl">
-            <label for="purityIn">He Purity (%)</label>
+            <label for="purityIn" data-i18n="lbl_pur">He Purity (%)</label>
             <input id="purityIn" type="number" min="0" max="100" step="1" value="100">
           </div>
         </div>
 
         <div class="ctl">
-          <label for="volIn">Helium volume (L)</label>
-          <input id="volIn" type="number" step="0.1" value="14.1">
+          <label for="volSlider" style="display: flex; justify-content: space-between;">
+            <span data-i18n="lbl_vol">Helium volume</span>
+            <b id="volOutVal" style="color: var(--ink);">14.1 L</b>
+          </label>
+          <input id="volSlider" type="range" min="1" max="100" step="0.1" value="14.1">
         </div>
         
         <div class="ctl-group">
           <div class="ctl">
-            <label for="massIn">Egg mass (g)</label>
+            <label for="massIn" data-i18n="lbl_mass">Egg mass (g)</label>
             <input id="massIn" type="number" min="5" max="200" step="1" value="30">
           </div>
           <div class="ctl">
-            <label for="breakIn">Impact Tol (m/s)</label>
+            <label for="breakIn" data-i18n="lbl_tol">Impact Tol (m/s)</label>
             <input id="breakIn" type="number" min="0.5" max="10" step="0.1" value="2.5">
           </div>
         </div>
 
         <div class="actions">
           <div class="btn-group">
-            <button id="dropBtn">↓ Drop</button>
-            <button id="restartBtn" class="btn-sec">↻ Reset</button>
+            <button id="dropBtn" data-i18n="btn_drop">↓ Drop</button>
+            <button id="restartBtn" class="btn-sec" data-i18n="btn_reset">↻ Reset</button>
           </div>
           <span class="hint" id="breakHint">Breaks above 2.5 m/s</span>
         </div>
@@ -261,6 +330,52 @@
 
 <script>
 (function() {
+  // --- Translation Dictionary ---
+  const i18n = {
+    en: {
+      title: "Helium Balloon<br>Egg Drop",
+      desc: "",
+      lbl_h: "Height", lbl_v: "Velocity", lbl_r: "Radius", lbl_vt: "Terminal V",
+      lbl_sel_h: "Drop height (m)", lbl_pur: "He Purity (%)",
+      lbl_vol: "Helium volume", lbl_mass: "Egg mass (g)", lbl_tol: "Impact Tol (m/s)",
+      btn_drop: "↓ Drop", btn_reset: "↻ Reset",
+      hint: "Breaks above {v} m/s",
+      s_broken: "✕ Egg broke — impact {v} m/s",
+      s_safe: "✓ Safe landing — impact {v} m/s",
+      s_float: "↑ Floated away",
+      float_up: "floats up"
+    },
+    ja: {
+      title: "ヘリウム風船<br>エッグドロップ",
+      desc: "",
+      lbl_h: "高さ", lbl_v: "速度", lbl_r: "半径", lbl_vt: "終端速度",
+      lbl_sel_h: "落下高度 (m)", lbl_pur: "ヘリウム純度 (%)",
+      lbl_vol: "ヘリウム体積", lbl_mass: "卵の質量 (g)", lbl_tol: "衝撃耐性 (m/s)",
+      btn_drop: "↓ 落下", btn_reset: "↻ リセット",
+      hint: "{v} m/s以上で破損",
+      s_broken: "✕ 卵が割れました — 衝撃 {v} m/s",
+      s_safe: "✓ 着陸成功 — 衝撃 {v} m/s",
+      s_float: "↑ 飛んでいきました",
+      float_up: "浮上"
+    }
+  };
+  
+  let currentLang = 'en';
+
+  function applyLang() {
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if(i18n[currentLang][key]) el.innerHTML = i18n[currentLang][key];
+    });
+    document.getElementById('breakHint').textContent = i18n[currentLang].hint.replace('{v}', state.break_v.toFixed(1));
+    
+    document.getElementById('btnEn').classList.toggle('active', currentLang === 'en');
+    document.getElementById('btnJa').classList.toggle('active', currentLang === 'ja');
+    
+    if (state.outcome !== null) showStatus();
+    updateMetrics();
+  }
+
   const cvs = document.getElementById('scene');
   const ctx = cvs.getContext('2d');
 
@@ -273,7 +388,6 @@
     layout.W = r.width; layout.H = r.height;
     layout.topY = r.height * 0.07;
     layout.groundY = r.height * 0.9;
-    // Scale for a max 7m drop ceiling
     layout.pxPerMeter = (layout.groundY - layout.topY) / 7;
   }
   const layout = {};
@@ -283,11 +397,11 @@
     rho_a: 1.225, 
     rho_h: 0.1786, 
     g: 9.81, 
-    Cd: 0.55 // Aerodynamic bluff body drag
+    Cd: 0.55
   };
   
   const state = { 
-    vol: 14.1, // Volume in Liters
+    vol: 14.1,
     m_egg: 0.030, 
     purity: 1.0, 
     break_v: 2.5, 
@@ -297,7 +411,6 @@
   };
 
   function getRadius() {
-    // V = (4/3) * pi * r^3 -> r = (3V / 4pi)^(1/3). Volume is in L (0.001 m^3)
     const v_m3 = state.vol * 0.001;
     return Math.pow((3 * v_m3) / (4 * Math.PI), 1/3);
   }
@@ -359,9 +472,12 @@
 
   function showStatus() {
     const el = document.getElementById('status');
-    if (state.outcome === 'broken')      el.innerHTML = '<span class="s-broken">✕ Egg broke — impact ' + state.impactV.toFixed(2) + ' m/s</span>';
-    else if (state.outcome === 'safe')   el.innerHTML = '<span class="s-safe">✓ Safe landing — impact ' + state.impactV.toFixed(2) + ' m/s</span>';
-    else if (state.outcome === 'floated')el.innerHTML = '<span class="s-floated">↑ Floated away</span>';
+    let msg = '';
+    if (state.outcome === 'broken')      msg = `<span class="s-broken">${i18n[currentLang].s_broken.replace('{v}', state.impactV.toFixed(2))}</span>`;
+    else if (state.outcome === 'safe')   msg = `<span class="s-safe">${i18n[currentLang].s_safe.replace('{v}', state.impactV.toFixed(2))}</span>`;
+    else if (state.outcome === 'floated')msg = `<span class="s-floated">${i18n[currentLang].s_float}</span>`;
+    
+    el.innerHTML = msg;
     el.style.display = 'block';
   }
 
@@ -376,7 +492,6 @@
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
     ctx.beginPath(); ctx.ellipse(cx - rPx*0.32, cy - rPx*0.38, rPx*0.16, rPx*0.1, -0.6, 0, Math.PI*2); ctx.fill();
     
-    // Upside-down teardrop knot
     ctx.fillStyle = '#993c1d';
     ctx.beginPath(); ctx.moveTo(cx-3, cy+rPx-1); ctx.lineTo(cx, cy+rPx+6); ctx.lineTo(cx+3, cy+rPx-1); ctx.closePath(); ctx.fill();
   }
@@ -408,7 +523,6 @@
     ctx.strokeStyle = '#cdbfa6'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(0, groundY); ctx.lineTo(W, groundY); ctx.stroke();
     
-    // Background 7m scale
     ctx.strokeStyle = '#d9cdb8'; ctx.fillStyle = '#9a8e76'; ctx.font = '12px "Spline Sans Mono", monospace'; ctx.textAlign = 'right';
     for (let m = 0; m <= 7; m++) {
       const y = groundY - m*pxPerMeter;
@@ -417,7 +531,7 @@
     }
 
     const cx = W/2;
-    const rPx = getRadius() * 100 * (pxPerMeter/100) * 2.6; // Scale radius visually to match scene
+    const rPx = getRadius() * 100 * (pxPerMeter/100) * 2.6;
     const stringLen = H*0.06;
     const { ry } = eggSize();
 
@@ -445,7 +559,7 @@
     document.getElementById('vOut').textContent = state.v.toFixed(2) + ' m/s';
     document.getElementById('rOut').textContent = (getRadius()*100).toFixed(1) + ' cm';
     const vt = termV();
-    document.getElementById('vtOut').textContent = vt === null ? 'floats up' : vt.toFixed(2) + ' m/s';
+    document.getElementById('vtOut').textContent = vt === null ? i18n[currentLang].float_up : vt.toFixed(2) + ' m/s';
   }
 
   let lastT = null;
@@ -459,10 +573,12 @@
   }
 
   // --- Controls Setup ---
-  document.getElementById('volIn').addEventListener('input', e => {
-    let val = parseFloat(e.target.value);
-    if(isNaN(val)) return;
-    state.vol = Math.max(0.1, val);
+  document.getElementById('btnEn').addEventListener('click', () => { currentLang = 'en'; applyLang(); });
+  document.getElementById('btnJa').addEventListener('click', () => { currentLang = 'ja'; applyLang(); });
+
+  document.getElementById('volSlider').addEventListener('input', e => {
+    state.vol = parseFloat(e.target.value);
+    document.getElementById('volOutVal').textContent = state.vol.toFixed(1) + ' L';
     if (!state.running) { updateMetrics(); render(); }
   });
   
@@ -489,14 +605,16 @@
     let val = parseFloat(e.target.value);
     if(isNaN(val)) return;
     state.break_v = Math.max(0.1, val);
-    document.getElementById('breakHint').textContent = `Breaks above ${state.break_v.toFixed(1)} m/s`;
+    document.getElementById('breakHint').textContent = i18n[currentLang].hint.replace('{v}', state.break_v.toFixed(1));
   });
 
   document.getElementById('restartBtn').addEventListener('click', reset);
   document.getElementById('dropBtn').addEventListener('click', start);
   window.addEventListener('resize', fit);
 
-  fit(); updateMetrics(); requestAnimationFrame(frame);
+  fit(); 
+  applyLang(); 
+  requestAnimationFrame(frame);
 })();
 </script>
 </body>
