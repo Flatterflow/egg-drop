@@ -308,7 +308,7 @@
         
         <div class="ctl-group">
           <div class="ctl">
-            <label for="massIn" data-i18n="lbl_mass">Egg mass (g)</label>
+            <label for="massIn" data-i18n="lbl_mass">Total mass (g)</label>
             <input id="massIn" type="number" min="5" max="200" step="1" value="30">
           </div>
           <div class="ctl">
@@ -334,10 +334,10 @@
   const i18n = {
     en: {
       title: "Helium Balloon<br>Egg Drop",
-      desc: "",
+      desc: "Adjust the helium volume to configure buoyancy. Find the sweet spot to safely drop the egg below the impact threshold.",
       lbl_h: "Height", lbl_v: "Velocity", lbl_r: "Radius", lbl_vt: "Terminal V",
       lbl_sel_h: "Drop height (m)", lbl_pur: "He Purity (%)",
-      lbl_vol: "Helium volume", lbl_mass: "Egg mass (g)", lbl_tol: "Impact Tol (m/s)",
+      lbl_vol: "Helium volume", lbl_mass: "Total mass (g)", lbl_tol: "Impact Tol (m/s)",
       btn_drop: "↓ Drop", btn_reset: "↻ Reset",
       hint: "Breaks above {v} m/s",
       s_broken: "✕ Egg broke — impact {v} m/s",
@@ -350,7 +350,7 @@
       desc: "",
       lbl_h: "高さ", lbl_v: "速度", lbl_r: "半径", lbl_vt: "終端速度",
       lbl_sel_h: "落下高度 (m)", lbl_pur: "ヘリウム純度 (%)",
-      lbl_vol: "ヘリウム体積", lbl_mass: "卵の質量 (g)", lbl_tol: "衝撃耐性 (m/s)",
+      lbl_vol: "ヘリウム体積", lbl_mass: "総質量 (g)", lbl_tol: "衝撃耐性 (m/s)",
       btn_drop: "↓ 落下", btn_reset: "↻ リセット",
       hint: "{v} m/s以上で破損",
       s_broken: "✕ 卵が割れました — 衝撃 {v} m/s",
@@ -393,16 +393,15 @@
   const layout = {};
 
   const PHYS = { 
-    m_rub: 0.002, 
-    rho_a: 1.225, 
-    rho_h: 0.1786, 
+    rho_a: 1.225,
+    rho_h: 0.1664,   // He density at 20°C (was 0.1786 at 0°C)
     g: 9.81, 
-    Cd: 0.55
+    Cd: 0.44          // smooth sphere Re 10^4–10^5 (was 0.55)
   };
   
   const state = { 
     vol: 14.1,
-    m_egg: 0.030, 
+    m_total: 0.030,   // total mass (egg + balloon rubber combined)
     purity: 1.0, 
     break_v: 2.5, 
     start_h: 5.8,
@@ -424,7 +423,8 @@
     const V_m3 = state.vol * 0.001;
     const A = Math.PI * r * r;
     const rho_gas = getGasDensity();
-    const netW = PHYS.g * (state.m_egg + PHYS.m_rub - (PHYS.rho_a - rho_gas) * V_m3);
+    // net weight uses total mass; no separate rubber term
+    const netW = PHYS.g * (state.m_total - (PHYS.rho_a - rho_gas) * V_m3);
     if (netW <= 0) return null;
     return Math.sqrt(2 * netW / (PHYS.rho_a * PHYS.Cd * A));
   }
@@ -450,8 +450,10 @@
       const A = Math.PI * r * r;
       const rho_gas = getGasDensity();
       
-      const inertia = state.m_egg + PHYS.m_rub + rho_gas * V_m3;
-      const Fg = PHYS.g * (state.m_egg + PHYS.m_rub - (PHYS.rho_a - rho_gas) * V_m3);
+      // inertia: total mass + gas inside balloon (no separate rubber term)
+      const inertia = state.m_total + rho_gas * V_m3;
+      // net gravitational force: total weight minus buoyancy
+      const Fg = PHYS.g * (state.m_total - (PHYS.rho_a - rho_gas) * V_m3);
       const Fd = -0.5 * PHYS.rho_a * state.v * Math.abs(state.v) * PHYS.Cd * A;
       
       state.v += ((Fg + Fd) / inertia) * dt;
@@ -481,7 +483,7 @@
     el.style.display = 'block';
   }
 
-  function eggSize() { const s = Math.cbrt(state.m_egg/0.030); return { rx: 9*s, ry: 13*s }; }
+  function eggSize() { const s = Math.cbrt(state.m_total/0.030); return { rx: 9*s, ry: 13*s }; }
 
   function drawBalloon(cx, cy, rPx) {
     const grad = ctx.createRadialGradient(cx - rPx*0.3, cy - rPx*0.35, rPx*0.1, cx, cy, rPx);
@@ -585,7 +587,7 @@
   document.getElementById('massIn').addEventListener('input', e => {
     let val = parseFloat(e.target.value);
     if(isNaN(val)) return;
-    state.m_egg = Math.max(1, val) / 1000;
+    state.m_total = Math.max(1, val) / 1000;
     if (!state.running) { updateMetrics(); render(); }
   });
 
